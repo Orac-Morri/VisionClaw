@@ -128,8 +128,9 @@ final class LiveKitSession: NSObject, ObservableObject {
   }
 
   /// What the user is looking at right now: the pinned frame if one is held,
-  /// otherwise the newest frame off the active track. Used by OpenClawAskBar to
-  /// attach the current view to a question.
+  /// otherwise the newest frame off the active track -- for attaching the
+  /// current view to a question. No caller at present: its consumer was the
+  /// direct OpenClaw client, archived out of the tree.
   func currentFrame() -> UIImage? {
     frozenFrame ?? frameGrabber.latestImage()
   }
