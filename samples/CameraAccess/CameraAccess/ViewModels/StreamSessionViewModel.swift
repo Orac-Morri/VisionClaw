@@ -19,6 +19,7 @@ import CoreImage
 import CoreMedia
 import CoreVideo
 import MWDATCamera
+import os
 import MWDATCore
 import SwiftUI
 import VideoToolbox
@@ -127,8 +128,10 @@ class StreamSessionViewModel: ObservableObject {
         if let cgImage = self.cpuCIContext.createCGImage(ciImage, from: rect) {
           let image = UIImage(cgImage: cgImage)
           if self.backgroundFrameCount <= 5 || self.backgroundFrameCount % 120 == 0 {
-            NSLog("[Stream] Background frame #%d decoded and forwarded (%dx%d)",
-                  self.backgroundFrameCount, width, height)
+            Log.stream.debug("""
+              Background frame #\(self.backgroundFrameCount, privacy: .public) \
+              decoded and forwarded (\(width, privacy: .public)x\(height, privacy: .public))
+              """)
           }
         }
       }
@@ -142,7 +145,7 @@ class StreamSessionViewModel: ObservableObject {
     selectedResolution = resolution
     // Applied the next time the camera is added: StreamConfiguration is fixed
     // at addCamera() time, so a live stream cannot change resolution in place.
-    NSLog("[Stream] Resolution changed to %@", resolutionLabel)
+    Log.stream.notice("Resolution changed to \(self.resolutionLabel, privacy: .public)")
   }
 
   /// 720x1280 rather than 360x640. At the low tier, printed text is a few
@@ -196,8 +199,10 @@ class StreamSessionViewModel: ObservableObject {
               try self.videoDecoder.decode(sampleBuffer)
             } catch {
               if self.backgroundFrameCount <= 5 || self.backgroundFrameCount % 120 == 0 {
-                NSLog("[Stream] Background frame #%d decode error: %@",
-                      self.backgroundFrameCount, String(describing: error))
+                Log.stream.error("""
+                  Background frame #\(self.backgroundFrameCount, privacy: .public) \
+                  decode error: \(String(describing: error), privacy: .public)
+                  """)
               }
             }
           } else if let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
@@ -283,7 +288,7 @@ class StreamSessionViewModel: ObservableObject {
       // Sleeping or out-of-range glasses are a wait state, not an error.
       let text = String(describing: error).lowercased()
       if text.contains("powered off") || text.contains("disconnected") || text.contains("no device") {
-        NSLog("[Stream] glasses unavailable, waiting: %@", String(describing: error))
+        Log.stream.notice("glasses unavailable, waiting: \(String(describing: error), privacy: .public)")
         glassesIssue = nil
       } else {
         glassesIssue = .reconnecting
@@ -314,7 +319,7 @@ class StreamSessionViewModel: ObservableObject {
       streamingStatus = .waiting
       try session.start()
     } catch {
-      NSLog("[Stream] session start failed: %@", String(describing: error))
+      Log.stream.error("session start failed: \(String(describing: error), privacy: .public)")
       glassesIssue = .reconnecting
       cleanupSession()
     }
@@ -343,7 +348,7 @@ class StreamSessionViewModel: ObservableObject {
     sessionErrorListenerToken = session.errorPublisher.listen { [weak self] error in
       Task { @MainActor [weak self] in
         guard let self else { return }
-        NSLog("[Stream] session error: %@", String(describing: error))
+        Log.stream.error("session error: \(String(describing: error), privacy: .public)")
         // Same voice as stream errors: a wait, not an alert.
         self.glassesIssue = .reconnecting
       }
@@ -363,7 +368,7 @@ class StreamSessionViewModel: ObservableObject {
       attachListeners(to: newCamera.stream)
       newCamera.stream.start()
     } catch {
-      NSLog("[Stream] addCamera failed: %@", String(describing: error))
+      Log.stream.error("addCamera failed: \(String(describing: error), privacy: .public)")
       camera = nil
       glassesIssue = .reconnecting
     }

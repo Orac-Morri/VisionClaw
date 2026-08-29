@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import LiveKit
+import os
 import SwiftUI
 
 /// The entire voice+vision client, post-migration: join a LiveKit room, publish
@@ -188,7 +189,7 @@ final class LiveKitSession: NSObject, ObservableObject {
       device.unlockForConfiguration()
       zoomFactor = target
     } catch {
-      NSLog("[LiveKit] zoom failed: %@", error.localizedDescription)
+      Log.liveKit.error("zoom failed: \(error.localizedDescription, privacy: .public)")
     }
   }
 
@@ -218,7 +219,7 @@ final class LiveKitSession: NSObject, ObservableObject {
       previewTrack = track
       attachGrabber(to: track)
     } catch {
-      NSLog("[LiveKit] preview camera unavailable: %@", error.localizedDescription)
+      Log.liveKit.error("preview camera unavailable: \(error.localizedDescription, privacy: .public)")
     }
   }
 
@@ -294,7 +295,7 @@ final class LiveKitSession: NSObject, ObservableObject {
         }
         attachGrabber(to: localVideoTrack)
       } catch {
-        NSLog("[LiveKit] camera unavailable, voice-only: %@", error.localizedDescription)
+        Log.liveKit.error("camera unavailable, voice-only: \(error.localizedDescription, privacy: .public)")
       }
       registerCaptionHandler()
       registerCardHandler()
@@ -361,7 +362,7 @@ final class LiveKitSession: NSObject, ObservableObject {
           let uuid = dict["uuid"] as? String,
           let type = dict["type"] as? String
     else {
-      NSLog("[LiveKit] ignoring malformed card payload (%d bytes)", json.count)
+      Log.liveKit.error("ignoring malformed card payload (\(json.count, privacy: .public) bytes)")
       return
     }
     let facts = ((dict["facts"] as? [[String: Any]]) ?? []).compactMap { f -> UICard.Fact? in

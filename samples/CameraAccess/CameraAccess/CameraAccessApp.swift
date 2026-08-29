@@ -17,6 +17,7 @@
 
 import Foundation
 import MWDATCore
+import os
 import SwiftUI
 
 #if canImport(MWDATMockDevice)
@@ -37,8 +38,14 @@ struct CameraAccessApp: App {
       try Wearables.configure()
       available = Wearables.shared
     } catch {
-      NSLog("[CameraAccess] Wearables SDK unavailable: \(error)")
+      Log.app.error("Wearables SDK unavailable: \(String(describing: error), privacy: .public)")
     }
+    // Notice level, so it survives into the persistent log store -- .debug and
+    // .info are dropped there, which makes them useless for reading a device
+    // after the fact. This line doubles as the marker that says logging itself
+    // is working: no launch line means the log channel is broken, not that the
+    // app stayed quiet.
+    Log.app.notice("launch: Wearables SDK \(available == nil ? "unavailable" : "available", privacy: .public)")
     self.wearables = available
   }
 
