@@ -58,8 +58,13 @@ struct VisionRootView: View {
   @State private var showSettings = ProcessInfo.processInfo.arguments.contains("-openSettings")
   /// Builds ship without a gateway token (it is per-person identity), so an
   /// install with none configured sees only the access-code gate.
+  /// `-skipAccessCode` bypasses it for on-device testing of the glasses path,
+  /// which needs no gateway at all -- the gate guards the cloud agent, not the
+  /// camera. Default behaviour is unchanged without the flag.
   @State private var needsAccessCode =
-    SettingsManager.shared.agentBackend == .cloud && !GeminiConfig.isAgentConfigured
+    !ProcessInfo.processInfo.arguments.contains("-skipAccessCode")
+      && SettingsManager.shared.agentBackend == .cloud
+      && !GeminiConfig.isAgentConfigured
 
   var body: some View {
     Group {

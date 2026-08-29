@@ -126,6 +126,13 @@ final class LiveKitSession: NSObject, ObservableObject {
     if let track { track.add(videoRenderer: frameGrabber) }
   }
 
+  /// What the user is looking at right now: the pinned frame if one is held,
+  /// otherwise the newest frame off the active track. Used by OpenClawAskBar to
+  /// attach the current view to a question.
+  func currentFrame() -> UIImage? {
+    frozenFrame ?? frameGrabber.latestImage()
+  }
+
   func toggleFreeze() async {
     if frozenFrame != nil {
       await unfreeze()
