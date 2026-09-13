@@ -84,6 +84,20 @@ struct StreamSessionView: View {
       } else {
         Color.black.edgesIgnoringSafeArea(.all)
       }
+
+      // OpenClaw ask strip, overlaid on whichever branch above is showing.
+      // Placed on the outer ZStack rather than inside a branch so it survives the
+      // iPhone-camera / glasses / waiting transitions without being torn down and
+      // rebuilt (which would drop the answer and the open socket).
+      // It is handed the latest decoded glasses frame so a question carries the image
+      // the wearer is looking at; before the first frame it still works, text-only.
+      VStack {
+        Spacer()
+        OpenClawAskBar(currentFrame: viewModel.currentVideoFrame)
+          .padding(.horizontal, 20)
+          .padding(.bottom, 28)
+      }
+      .zIndex(3)
     }
     .task {
       viewModel.onDecodedFrame = { [weak liveKit] pixelBuffer in
