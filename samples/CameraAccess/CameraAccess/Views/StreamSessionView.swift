@@ -95,7 +95,10 @@ struct StreamSessionView: View {
         Spacer()
         OpenClawAskBar(currentFrame: viewModel.currentVideoFrame)
           .padding(.horizontal, 20)
-          .padding(.bottom, 28)
+          // Clear the bottom control row rather than sitting on top of it: the shutter is
+          // 68pt tall with 24pt of bottom padding, and the call button shares that row, so
+          // anything below ~92pt overlaps them. 108 leaves a visible gap above.
+          .padding(.bottom, 108)
       }
       .zIndex(3)
     }

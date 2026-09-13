@@ -101,58 +101,123 @@ struct OpenClawAskBar: View {
   let currentFrame: UIImage?
 
   @StateObject private var model = OpenClawAskModel()
+  @State private var expanded = false
+  @State private var unread = false
   @FocusState private var focused: Bool
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      if let answer = model.answer {
-        ScrollView {
-          Text(answer)
-            .font(.callout)
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .textSelection(.enabled)
+    // Trailing alignment keeps the collapsed pill clear of the call button, which sits on the
+    // leading side of the control row, and of the centred shutter.
+    VStack(alignment: .trailing, spacing: 10) {
+      if expanded {
+        if let answer = model.answer {
+          answerCard(answer)
         }
-        .frame(maxHeight: 180)
-        .padding(12)
-        .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
-        .transition(.opacity)
-      }
-
-      if let status = model.status {
-        Text(status)
-          .font(.caption)
-          .foregroundStyle(.white.opacity(0.8))
-          .padding(.horizontal, 4)
-      }
-
-      HStack(spacing: 8) {
-        TextField("Ask about what you're seeing…", text: $model.question)
-          .textFieldStyle(.plain)
-          .foregroundStyle(.white)
-          .tint(.white)
-          .submitLabel(.send)
-          .focused($focused)
-          .onSubmit { send() }
-          .padding(.horizontal, 14)
-          .padding(.vertical, 10)
-          .background(.black.opacity(0.55), in: Capsule())
-
-        Button(action: send) {
-          Group {
-            if model.isBusy {
-              ProgressView().tint(.white)
-            } else {
-              Image(systemName: "arrow.up.circle.fill").font(.system(size: 28))
-            }
-          }
-          .frame(width: 34, height: 34)
-          .foregroundStyle(.white)
+        if let status = model.status {
+          Text(status)
+            .font(.caption)
+            .foregroundStyle(.white.opacity(0.85))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(.black.opacity(0.5), in: Capsule())
         }
-        .disabled(model.isBusy || model.question.trimmingCharacters(in: .whitespaces).isEmpty)
+        inputRow
+      } else {
+        collapsedPill
       }
     }
-    .animation(.easeInOut(duration: 0.2), value: model.answer)
+    .animation(.easeInOut(duration: 0.22), value: expanded)
+    .animation(.easeInOut(duration: 0.22), value: model.answer)
+    .onChange(of: model.answer) { newValue in
+      // A reply that lands while collapsed shouldn't be lost silently.
+      if newValue != nil && !expanded { unread = true }
+    }
+  }
+
+  // MARK: - Pieces
+
+  /// Compact entry point. Deliberately small: this sits over a live camera view, and a
+  /// permanently-open text field hides the thing the wearer is trying to look at.
+  private var collapsedPill: some View {
+    Button {
+      expanded = true
+      unread = false
+      focused = true
+    } label: {
+      HStack(spacing: 6) {
+        Image(systemName: "bubble.left.and.text.bubble.right.fill")
+          .font(.system(size: 15, weight: .semibold))
+        Text("Ask")
+          .font(.subheadline.weight(.semibold))
+      }
+      .foregroundStyle(.white)
+      .padding(.horizontal, 14)
+      .padding(.vertical, 9)
+      .background(.black.opacity(0.5), in: Capsule())
+      .overlay(alignment: .topTrailing) {
+        if unread {
+          Circle()
+            .fill(.green)
+            .frame(width: 9, height: 9)
+            .offset(x: 3, y: -3)
+        }
+      }
+    }
+    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottomTrailing)))
+  }
+
+  private func answerCard(_ answer: String) -> some View {
+    ScrollView {
+      Text(answer)
+        .font(.callout)
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .textSelection(.enabled)
+    }
+    .frame(maxHeight: 170)
+    .padding(12)
+    .background(.black.opacity(0.65), in: RoundedRectangle(cornerRadius: 14))
+    .transition(.opacity)
+  }
+
+  private var inputRow: some View {
+    HStack(spacing: 8) {
+      Button {
+        focused = false
+        expanded = false
+      } label: {
+        Image(systemName: "xmark")
+          .font(.system(size: 14, weight: .bold))
+          .foregroundStyle(.white.opacity(0.9))
+          .frame(width: 32, height: 32)
+          .background(.black.opacity(0.5), in: Circle())
+      }
+
+      TextField("Ask about what you're seeing…", text: $model.question)
+        .textFieldStyle(.plain)
+        .foregroundStyle(.white)
+        .tint(.white)
+        .submitLabel(.send)
+        .focused($focused)
+        .onSubmit { send() }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.black.opacity(0.55), in: Capsule())
+
+      Button(action: send) {
+        Group {
+          if model.isBusy {
+            ProgressView().tint(.white)
+          } else {
+            Image(systemName: "arrow.up.circle.fill").font(.system(size: 28))
+          }
+        }
+        .frame(width: 34, height: 34)
+        .foregroundStyle(.white)
+      }
+      .disabled(model.isBusy || model.question.trimmingCharacters(in: .whitespaces).isEmpty)
+    }
+    .transition(.opacity)
   }
 
   private func send() {
