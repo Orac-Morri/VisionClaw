@@ -64,14 +64,21 @@ struct VisionRootView: View {
   /// on a simulator with no GUI to tap through.
   @State private var showSettings = ProcessInfo.processInfo.arguments.contains("-openSettings")
   /// Builds ship without a gateway token (it is per-person identity), so an
-  /// install with none configured sees only the access-code gate.
-  /// `-skipAccessCode` bypasses it for on-device testing of the glasses path,
-  /// which needs no gateway at all -- the gate guards the cloud agent, not the
-  /// camera. Default behaviour is unchanged without the flag.
+  /// install with none configured sees only the access-code gate. The gate
+  /// guards the cloud agent, not the camera.
+  ///
+  /// The premise of that gate is "no token means no agent at all" -- which
+  /// stopped being true once the viewfinder ask bar landed: a configured
+  /// OpenClaw host+token IS an agent, reached over the tailnet without the
+  /// cloud gateway ever being involved. So an install that can talk to
+  /// OpenClaw skips the gate permanently, not just for a flagged launch.
+  /// A build with neither backend configured still sees it, and
+  /// `-skipAccessCode` still forces a bypass for on-device testing.
   @State private var needsAccessCode =
     !ProcessInfo.processInfo.arguments.contains("-skipAccessCode")
       && SettingsManager.shared.agentBackend == .cloud
       && !GeminiConfig.isAgentConfigured
+      && !GeminiConfig.isOpenClawConfigured
 
   var body: some View {
     Group {
